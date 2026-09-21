@@ -3,7 +3,11 @@
 </style><link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#274477">
 <link rel="apple-touch-icon" href="./icon-192.png">
-</head><body><header><h1>🎵 Louvores</h1><div class='small' style='color:#dfe7ff'>Índice e letras offline</div></header><main class='wrap'><div class='search'><input id='q' placeholder='Buscar por número ou título'><button onclick='render()'>Buscar</button></div><div class='az' id='az'></div><div id='list'></div></main><button class='fab' onclick='editSong()'>+</button>
+</head><body><header><h1>🎵 Louvores</h1><div class='small' style='color:#dfe7ff'>Índice e letras offline</div></header><main class='wrap'><div class='search'><input id='q' placeholder='Buscar por número ou título'><button onclick='render()'>Buscar</button></div><div class='az' id='az'></div><div id='list'></div><div class='actions' style='margin-top:14px'>
+<button class='btn' onclick='backupSongs()'>💾 Fazer backup</button>
+<button class='btn' onclick="document.getElementById('restoreFile').click()">📂 Restaurar backup</button>
+<input id='restoreFile' type='file' accept='.json,application/json' style='display:none' onchange='restoreSongs(event)'>
+</div></main><button class='fab' onclick='editSong()'>+</button>
 <section class='modal' id='editor'><div class='bar'><button onclick='closeEditor()'>← Voltar</button><b id='editTitle'>Adicionar louvor</b></div><div class='form'><input id='num' placeholder='Número do louvor'><input id='title' placeholder='Título'><textarea id='lyrics' rows='18' placeholder='Cole aqui a letra do louvor'></textarea><div class='actions'><button class='btn' onclick='saveSong()'>Salvar</button><button class='btn' id='deleteBtn' style='display:none' onclick='deleteSong()'>Excluir</button></div></div></section>
 <section class='song' id='viewer'><div class='bar' id='viewerBar'><button onclick='closeSong()'>← Índice</button><button onclick='font(-2)'>A−</button><button onclick='font(2)'>A+</button><button onclick='projection()'>⛶ Projeção</button><button onclick='editCurrent()'>Editar</button></div><h2 class='songTitle' id='vtitle'></h2><div class='songText' id='vlyrics'></div></section>
 <script>
@@ -19,5 +23,29 @@ function deleteSong(){if(confirm('Excluir este louvor?')){songs=songs.filter(s=>
 function openSong(id){let s=songs.find(x=>x.id===id);if(!s)return;current=id;$('vtitle').textContent=(s.num?s.num+' - ':'')+s.title;$('vlyrics').textContent=s.lyrics;$('viewer').classList.add('on');window.scrollTo(0,0)}function closeSong(){$('viewer').classList.remove('on');document.documentElement.requestFullscreen&&document.fullscreenElement&&document.exitFullscreen().catch(()=>{})}
 function font(n){let e=$('vlyrics'),v=parseInt(getComputedStyle(e).fontSize);e.style.fontSize=Math.max(16,Math.min(48,v+n))+'px'}
 function projection(){let b=$('viewerBar'),h=$('vtitle');let hide=b.style.display!=='none';b.style.display=hide?'none':'flex';h.style.display=hide?'none':'block';if(hide&&document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(()=>{});else if(!hide&&document.fullscreenElement)document.exitFullscreen().catch(()=>{})}
+function backupSongs(){
+if(!songs.length)return alert('Ainda não há louvores cadastrados para fazer backup.');
+let data={app:'Louvores',version:1,createdAt:new Date().toISOString(),songs:songs};
+let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+let url=URL.createObjectURL(blob),a=document.createElement('a'),d=new Date(),pad=n=>String(n).padStart(2,'0');
+a.href=url;a.download='backup-louvores-'+d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'.json';
+document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function restoreSongs(ev){
+let file=ev.target.files&&ev.target.files[0];if(!file)return;
+let reader=new FileReader();
+reader.onload=function(){
+try{
+let data=JSON.parse(reader.result),incoming=Array.isArray(data)?data:data.songs;
+if(!Array.isArray(incoming))throw new Error('Formato inválido');
+incoming=incoming.filter(s=>s&&typeof s.title==='string'&&typeof s.lyrics==='string').map((s,i)=>({id:String(s.id||Date.now()+'-'+i),num:String(s.num||''),title:s.title,lyrics:s.lyrics}));
+if(!incoming.length)throw new Error('Nenhum louvor encontrado');
+if(!confirm('Restaurar '+incoming.length+' louvor(es)? Isso substituirá os louvores atuais deste aparelho.')){ev.target.value='';return;}
+songs=incoming;persist();letter='';$('q').value='';render();alert(songs.length+' louvor(es) restaurado(s) com sucesso.');
+}catch(e){alert('Não foi possível restaurar este arquivo. Escolha um backup válido do aplicativo Louvores.');}
+ev.target.value='';
+};
+reader.readAsText(file);
+}
 function editCurrent(){editSong(current)}init();
 </script></body></html>
