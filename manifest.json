@@ -1,1 +1,24 @@
-{"name":"Louvores","short_name":"Louvores","start_url":"./index.html","display":"standalone","background_color":"#eef2f8","theme_color":"#263b67","icons":[]}
+{
+  "name": "Louvores",
+  "short_name": "Louvores",
+  "description": "Índice e letras de louvores offline",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f1f4fa",
+  "theme_color": "#274477",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
