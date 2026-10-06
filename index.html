@@ -11,7 +11,28 @@
 <section class='modal' id='editor'><div class='bar'><button onclick='closeEditor()'>← Voltar</button><b id='editTitle'>Adicionar louvor</b></div><div class='form'><input id='num' placeholder='Número do louvor' readonly><input id='title' placeholder='Título'><textarea id='lyrics' rows='18' placeholder='Cole aqui a letra do louvor'></textarea><div class='actions'><button class='btn' onclick='saveSong()'>Salvar</button><button class='btn' id='deleteBtn' style='display:none' onclick='deleteSong()'>Excluir</button></div></div></section>
 <section class='song' id='viewer'><div class='bar' id='viewerBar'><button onclick='closeSong()'>← Índice</button><button onclick='font(-2)'>A−</button><button onclick='font(2)'>A+</button><button onclick='projection()'>⛶ Projeção</button><button onclick='editCurrent()'>Editar</button></div><h2 class='songTitle' id='vtitle'></h2><div class='songText' id='vlyrics'></div></section>
 <script>
-let songs=JSON.parse(localStorage.getItem('louvores')||'[]'), current=null, editing=null, letter='';
+  const FIREBASE_DB_URL = 'https://louvores-online-default-rtdb.firebaseio.com';
+
+async function sincronizarLouvores(){
+  try{
+    const resposta = await fetch(FIREBASE_DB_URL + '/songs.json?ts=' + Date.now(), {
+      cache: 'no-store'
+    });
+    if(!resposta.ok) throw new Error('Falha ao acessar banco online');
+
+    const online = await resposta.json();
+
+    if(Array.isArray(online) && online.length){
+      songs = online.filter(Boolean);
+      persist();
+      render();
+      console.log('Louvores atualizados pela internet:', songs.length);
+    }
+  }catch(erro){
+    console.log('Sem conexão. Usando louvores salvos no aparelho.');
+  }
+}
+  let songs=JSON.parse(localStorage.getItem('louvores')||'[]'), current=null, editing=null, letter='';
 const $=id=>document.getElementById(id);
 const AUTO_BACKUP_KEY='louvores_backup_automatico';
 function persist(){
@@ -64,5 +85,7 @@ ev.target.value='';
 };
 reader.readAsText(file);
 }
-function editCurrent(){editSong(current)}init();
+function editCurrent(){editSong(current)}
+init();
+sincronizarLouvores();
 </script></body></html>
