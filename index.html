@@ -44,7 +44,7 @@ async function loginAdmin(){
     sessionStorage.setItem('louvores_admin_token',adminToken);
     alert('Administrador conectado com sucesso.');
   }catch(e){
-    alert('Não foi possível entrar como administrador. Confira o e-mail e a senha.');
+    alert('Erro do Firebase: ' + e.message);
   }
 }
 
