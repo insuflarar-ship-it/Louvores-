@@ -1,9 +1,11 @@
 <!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'><meta name='theme-color' content='#263b67'><link rel='manifest' href='manifest.json'><title>Louvores</title><style>
 :root{--b:#263b67;--l:#eef2f8;--w:#fff;--t:#172033}*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--l);color:var(--t)}header{background:var(--b);color:#fff;padding:18px 16px;text-align:center;position:sticky;top:0;z-index:2}header h1{margin:0;font-size:22px}.wrap{max-width:760px;margin:auto;padding:14px}.search{display:flex;gap:8px}.search input,.form input,.form textarea{width:100%;border:1px solid #ccd3df;border-radius:12px;padding:13px;font-size:16px}.search button,.btn{border:0;border-radius:12px;padding:12px 15px;background:var(--b);color:white;font-weight:700}.az{display:flex;gap:7px;overflow:auto;padding:14px 0}.az button{min-width:38px;height:38px;border:0;border-radius:9px;background:#fff;box-shadow:0 1px 4px #ccd}.card{background:#fff;margin:9px 0;padding:15px;border-radius:14px;box-shadow:0 2px 8px #d9deea;display:flex;justify-content:space-between;align-items:center}.card strong{font-size:17px}.small{font-size:13px;color:#657}.fab{position:fixed;right:20px;bottom:22px;width:58px;height:58px;border-radius:50%;border:0;background:var(--b);color:#fff;font-size:30px}.modal,.song{display:none;position:fixed;inset:0;background:#fff;z-index:10;overflow:auto}.modal.on,.song.on{display:block}.bar{position:sticky;top:0;background:var(--b);color:#fff;padding:10px;display:flex;gap:8px;align-items:center;z-index:2}.bar button{background:#fff;border:0;border-radius:9px;padding:9px}.songText{white-space:pre-wrap;padding:24px 20px 100px;max-width:850px;margin:auto;font-size:24px;line-height:1.55}.songTitle{text-align:center;padding:20px 10px 0}.form{padding:18px;max-width:700px;margin:auto}.form>*{margin-bottom:10px}.actions{display:flex;gap:8px;flex-wrap:wrap}@media(min-width:700px){.songText{font-size:28px}}
+
+.list-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.list-nav button[aria-pressed="true"]{outline:3px solid #8da5ce}.song-open{flex:1;text-align:left;border:0;background:transparent;color:inherit;padding:8px;cursor:pointer;min-width:0}.card{gap:8px;flex-wrap:wrap}.card-controls{display:flex;gap:6px;flex-wrap:wrap}.card-controls button{padding:10px;border:1px solid #ccd3df;border-radius:9px;background:#eef2f8;color:#172033;cursor:pointer}.card-controls button:disabled{opacity:.5;cursor:default}.list-help{margin:8px 0 14px}.list-status{min-height:1.5em}.card strong{overflow-wrap:anywhere}
 </style><link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#274477">
 <link rel="apple-touch-icon" href="./icon-192.png">
-</head><body><header><h1>🎵 Louvores</h1><div class='small' style='color:#dfe7ff'>Índice e letras offline</div></header><main class='wrap'><div class='search'><input id='q' placeholder='Buscar por número ou título'><button onclick='render()'>Buscar</button></div><div class='az' id='az'></div><div id='list'></div><div class='actions' style='margin-top:14px'>
+</head><body><header><h1>🎵 Louvores</h1><div class='small' style='color:#dfe7ff'>Índice e letras offline</div></header><main class='wrap'><nav class='list-nav' aria-label='Áreas dos louvores'><button class='btn' id='allSongsBtn' onclick='showSongArea(false)' aria-pressed='true'>🎵 Todos os louvores</button><button class='btn' id='myListBtn' onclick='showSongArea(true)' aria-pressed='false'>📋 Minha Lista</button></nav><div id='myListTools' hidden><h2>📋 Minha Lista</h2><p class='list-help'>Sua sequência para cantar, salva neste navegador e aparelho.</p><button class='btn' id='clearMyListBtn' onclick='clearMyList()'>🗑️ Limpar lista</button></div><p class='small list-status' id='listStatus' role='status' aria-live='polite'></p><div id='catalogTools'><div class='search'><input id='q' placeholder='Buscar por número ou título'><button onclick='render()'>Buscar</button></div><div class='az' id='az'></div></div><div id='list'></div><div class='actions' style='margin-top:14px'>
 <button class='btn' onclick='backupSongs()'>💾 Fazer backup</button>
 <button class='btn' onclick="document.getElementById('restoreFile').click()">📂 Restaurar backup</button>
 <button class='btn' onclick='loginAdmin()'>🔐 Administrador</button>
@@ -86,7 +88,71 @@ function recoverAutoBackup(){
   }catch(e){}
 }
 function init(){recoverAutoBackup();let a='TODASABCDEFGHIJKLMNOPQRSTUVWXYZ'.match(/TODAS|./g);$('az').innerHTML=a.map(x=>`<button onclick="letter='${x==='TODAS'?'':x}';render()">${x}</button>`).join('');render();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{})}
-function render(){let q=$('q').value.toLowerCase().trim();let r=songs.filter(s=>(!letter||s.title.toUpperCase().startsWith(letter))&&(!q||String(s.num).includes(q)||s.title.toLowerCase().includes(q))).sort((a,b)=>(+a.num||99999)-(+b.num||99999)||a.title.localeCompare(b.title));$('list').innerHTML=r.length?r.map(s=>`<div class='card' onclick="openSong('${s.id}')"><div><strong>${s.num? s.num+' - ':''}${esc(s.title)}</strong><div class='small'>Toque para abrir em tela cheia</div></div><span>›</span></div>`).join(''):`<div class='card'>Nenhum louvor cadastrado. Toque em + para adicionar.</div>`}
+const MY_LIST_KEY='louvores_minha_lista_v1';
+let myList=readMyList(), showingMyList=false;
+function readMyList(){
+  try{
+    const value=JSON.parse(localStorage.getItem(MY_LIST_KEY)||'[]');
+    return Array.isArray(value)?[...new Set(value.filter(id=>typeof id==='string'&&id))]:[];
+  }catch(e){return []}
+}
+function changeMyList(next,message){
+  try{localStorage.setItem(MY_LIST_KEY,JSON.stringify(next))}
+  catch(e){$('listStatus').textContent='Não foi possível salvar a lista neste navegador. Verifique o armazenamento disponível.';return false}
+  myList=next;render();$('listStatus').textContent=message;return true;
+}
+function addToMyList(id){
+  if(myList.includes(id))return;
+  changeMyList([...myList,id],'Louvor adicionado à Minha Lista.');
+}
+function removeFromMyList(id){changeMyList(myList.filter(x=>x!==id),'Louvor removido da Minha Lista.')}
+function moveInMyList(id,delta){
+  const index=myList.indexOf(id),target=index+delta;
+  if(index<0||target<0||target>=myList.length)return;
+  const next=[...myList];[next[index],next[target]]=[next[target],next[index]];
+  changeMyList(next,'Ordem da Minha Lista atualizada.');
+}
+function clearMyList(){
+  if(!myList.length||!confirm('Limpar toda a Minha Lista deste aparelho? Os louvores cadastrados serão mantidos.'))return;
+  changeMyList([],'Minha Lista foi limpa.');
+}
+function showSongArea(mine){showingMyList=mine;$('listStatus').textContent='';render()}
+window.addEventListener('storage',event=>{
+  if(event.key===MY_LIST_KEY||event.key===null){myList=readMyList();render()}
+});
+function render(){
+  $('catalogTools').hidden=showingMyList;$('myListTools').hidden=!showingMyList;
+  $('allSongsBtn').setAttribute('aria-pressed',String(!showingMyList));
+  $('myListBtn').setAttribute('aria-pressed',String(showingMyList));
+  $('myListBtn').textContent='📋 Minha Lista ('+myList.length+')';
+  $('clearMyListBtn').disabled=!myList.length;
+  const q=$('q').value.toLowerCase().trim();
+  const rows=showingMyList?myList.map(id=>songs.find(s=>String(s.id)===id)||{id,title:'Louvor indisponível',missing:true}):
+    songs.filter(s=>(!letter||s.title.toUpperCase().startsWith(letter))&&(!q||String(s.num).includes(q)||s.title.toLowerCase().includes(q))).sort((a,b)=>(+a.num||99999)-(+b.num||99999)||a.title.localeCompare(b.title));
+  const list=$('list');list.replaceChildren();
+  if(!rows.length){
+    const empty=document.createElement('div');empty.className='card';
+    empty.textContent=showingMyList?'Sua lista está vazia. Abra Todos os louvores e toque em “Adicionar à lista”.':(songs.length?'Nenhum louvor encontrado.':'Nenhum louvor cadastrado. Toque em + para adicionar.');
+    list.appendChild(empty);return;
+  }
+  rows.forEach((song,index)=>{
+    const id=String(song.id),card=document.createElement('div');card.className='card';
+    const open=document.createElement('button');open.type='button';open.className='song-open';open.disabled=!!song.missing;
+    const title=document.createElement('strong');title.textContent=(showingMyList?(index+1)+'. ':'')+(song.num?song.num+' - ':'')+song.title;
+    const help=document.createElement('div');help.className='small';help.textContent=song.missing?'Este louvor não está no catálogo deste aparelho.':'Toque para abrir em tela cheia';
+    open.append(title,help);open.addEventListener('click',()=>openSong(song.id));card.appendChild(open);
+    const controls=document.createElement('div');controls.className='card-controls';
+    function button(label,action,disabled=false,accessible=label){
+      const b=document.createElement('button');b.type='button';b.textContent=label;b.disabled=disabled;b.setAttribute('aria-label',accessible+' — '+song.title);b.addEventListener('click',action);controls.appendChild(b);
+    }
+    if(showingMyList){
+      button('↑',()=>moveInMyList(id,-1),index===0,'Subir');
+      button('↓',()=>moveInMyList(id,1),index===rows.length-1,'Descer');
+      button('Remover',()=>removeFromMyList(id));
+    }else{const added=myList.includes(id);button(added?'✓ Na lista':'➕ Adicionar à lista',()=>addToMyList(id),added)}
+    card.appendChild(controls);list.appendChild(card);
+  });
+}
 function esc(x){return String(x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function nextSongNum(){let nums=songs.map(s=>parseInt(s.num,10)).filter(Number.isFinite);let n=nums.length?Math.max(...nums)+1:1;return String(n).padStart(2,'0')}
 function editSong(id=null){editing=id;let s=songs.find(x=>x.id===id);$('num').value=s?.num||nextSongNum();$('title').value=s?.title||'';$('lyrics').value=s?.lyrics||'';$('deleteBtn').style.display=s?'block':'none';$('editTitle').textContent=s?'Editar louvor':'Adicionar louvor';$('editor').classList.add('on')}
